@@ -102,22 +102,28 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 		return model.GetEmployeeResponse{}, err
 	}
 
-	getTeammatesQuery := `
-	SELECT e.id, e.is_general, e.role_name, e.name, e.family_name, e.middle_name, e.position, u.name
+	getTeammatesQuery :=
+		`
+	SELECT e.id, e.is_general, e.role_name, e.name, e.family_name, e.middle_name, e.position, u.name, ur.parent_id
 	FROM employees AS e
 	JOIN units AS u
 	ON e.unit_id = u.id
+	LEFT JOIN units_relations AS ur
+	ON u.id = ur.child_id
 	WHERE
 	u.id = $1
 	`
+
+	var parent_id int
+	hashSet := make(map[int]bool)
 
 	rows, err := r.db.QueryContext(ctx, getTeammatesQuery, unitId)
 	if err != nil {
 		return model.GetEmployeeResponse{}, err
 	}
-
 	teammates := []model.BaseEmployee{}
 	for rows.Next() {
+
 		teammate := model.BaseEmployee{}
 		if err := rows.Scan(
 			&teammate.Id,
@@ -128,16 +134,68 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 			&teammate.MiddleName,
 			&teammate.Position,
 			&teammate.Unit,
-		); err != nil {
+			&parent_id,
+		); err != nil && parent_id != 0 {
 			return model.GetEmployeeResponse{}, err
 		}
 
 		if teammate.Id != id {
-			teammates = append(teammates, teammate)
+			if _, ok := hashSet[teammate.Id]; !ok {
+				hashSet[teammate.Id] = true
+				teammates = append(teammates, teammate)
+			}
 		}
 	}
 
 	response.Teammates = teammates
+
+	if parent_id == 0 {
+		return response, err
+	}
+
+	getParentId := `
+	SELECT ur.parent_id
+	FROM units AS u
+	JOIN units_relations AS ur
+	ON u.id = ur.child_id
+	WHERE 
+	ur.child_id = $1
+	`
+
+	parentId := -1
+	row = r.db.QueryRow(getParentId, unitId)
+	if err := row.Scan(&parentId); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			return model.GetEmployeeResponse{}, err
+		}
+	}
+
+	getParentName := `
+	SELECT u.name
+	FROM units AS u
+	WHERE u.id = $1
+	`
+
+	if parentId != -1 {
+		var parentName string
+		row = r.db.QueryRow(getParentName, parentId)
+		if err := row.Scan(&parentName); err != nil {
+			return model.GetEmployeeResponse{}, err
+		}
+
+		for i := 0; i < len(response.Teammates); i++ {
+			unitMap := make(map[string]string)
+			unitMap[response.Teammates[i].Unit] = parentName
+			response.Teammates[i].StringDict = unitMap
+		}
+	} else {
+		for i := 0; i < len(response.Teammates); i++ {
+			unitMap := make(map[string]string)
+			unitMap[response.Teammates[i].Unit] = ""
+			response.Teammates[i].StringDict = unitMap
+		}
+	}
+
 	return response, nil
 }
 
@@ -147,7 +205,7 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 	FROM employees AS e
 	JOIN units AS u
 	ON e.unit_id = u.id
-	JOIN units_relations AS ur 
+	LEFT JOIN units_relations as ur
 	ON u.id = ur.child_id
 	WHERE
 	`
@@ -164,10 +222,12 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 		return model.GetBaseEmployeesResponse{}, err
 	}
 
-	var parent_id int
 	employees := model.GetBaseEmployeesResponse{}
+	var parentIds []int
 
 	for rows.Next() {
+		var parentId int
+
 		employee := model.BaseEmployee{}
 		err := rows.Scan(
 			&employee.Id,
@@ -178,12 +238,13 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 			&employee.MiddleName,
 			&employee.Position,
 			&employee.Unit,
-			&parent_id,
+			&parentId,
 		)
-		if err != nil {
+		if err != nil && parentId != 0 {
 			return model.GetBaseEmployeesResponse{}, err
 		}
 
+		parentIds = append(parentIds, parentId)
 		employees = append(employees, employee)
 	}
 
@@ -192,31 +253,28 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 	}
 
 	getParentName := `
-	SELECT u.name 
+	SELECT u.name
 	FROM units AS u
-	JOIN units_relations AS ur
-	ON u.id = ur.child_id
-	WHERE 
-	ur.child_id = $1
+	WHERE
+	u.id=$1;
 	`
 
 	for i := 0; i < len(employees); i++ {
 		var parentUnit string
 		parentMap := make(map[string]string)
 
-		row, err := r.db.QueryContext(ctx, getParentName, parent_id)
-		if err != nil {
-			return model.GetBaseEmployeesResponse{}, err
-		}
-
-		if err := row.Scan(&parentUnit); err != nil {
-			if errors.Is(err, sql.ErrNoRows) {
-				parentMap[employees[i].Unit] = ""
-			} else {
-				return model.GetBaseEmployeesResponse{}, nil
+		if parentIds[i] != 0 {
+			row := r.db.QueryRowContext(ctx, getParentName, parentIds[i])
+			if err := row.Scan(&parentUnit); err != nil {
+				if errors.Is(err, sql.ErrNoRows) {
+					parentMap[employees[i].Unit] = ""
+				} else {
+					return model.GetBaseEmployeesResponse{}, err
+				}
 			}
 		}
-		parentMap[employees[i].Name] = parentUnit
+
+		parentMap[employees[i].Unit] = parentUnit
 		employees[i].StringDict = parentMap
 	}
 
