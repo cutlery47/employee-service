@@ -47,27 +47,6 @@ type GetEmployeeResponse struct {
 	Teammates   []BaseEmployee
 }
 
-// ----------------------
-
-// type EmployeeMeta struct {
-// 	EmployeeGeneral
-// 	DateOfBirth time.Time
-// 	Cellphone   string
-// 	Email       string
-// 	Address     string
-// 	City        string
-// 	Team        string
-// 	Position    string
-// }
-
-// type EmployeeGeneral struct {
-// 	Id         int
-// 	Name       string
-// 	Surname    string
-// 	Department string
-// 	Role       string
-// }
-
 // api/v1/hint (POST)
 
 type GetHintRequest struct {
