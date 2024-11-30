@@ -58,6 +58,10 @@ func (ctl *Controller) GetEmployee(c echo.Context) error {
 		ctl.h.handleError(err)
 	}
 
+	if request.Id == 0 {
+		return echo.NewHTTPError(400, "wrong request id was provided")
+	}
+
 	res, err := ctl.repo.GetEmployee(ctx, request.Id)
 	if err != nil {
 		return ctl.h.handleError(err)

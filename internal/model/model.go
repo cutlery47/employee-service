@@ -15,21 +15,24 @@ type GetBaseEmployeesRequest struct {
 
 type GetBaseEmployeesResponse []BaseEmployee
 
+// TODO: string dict на верхний unit
 type BaseEmployee struct {
-	Id         int    `json:"id"`
-	IsGeneral  bool   `json:"is_general"`
-	Role       string `json:"role"`
-	Name       string `json:"name"`
-	FamilyName string `json:"family_name"`
-	MiddleName string `json:"middle_name"`
-	Position   string `json:"position"`
-	Unit       string `json:"unit"`
+	Id         int               `json:"id"`
+	IsGeneral  bool              `json:"is_general"`
+	Role       string            `json:"role"`
+	Name       string            `json:"name"`
+	FamilyName string            `json:"family_name"`
+	MiddleName string            `json:"middle_name"`
+	Position   string            `json:"position"`
+	Unit       string            `json:"unit"`
+	StringDict map[string]string `json:"units"` // название текущего юнита -> название высшестоящего юнита
+	// StringDict
 }
 
 // api/v1/employee (POST)
 
 type GetEmployeeRequest struct {
-	Id int `json:"id,omitempty"`
+	Id int `json:"id"`
 }
 
 type GetEmployeeResponse struct {
@@ -93,10 +96,11 @@ type GetUnitRequest struct {
 	Id int `json:"id,omitempty"`
 }
 
+// -> Unit
 type GetUnitResponse struct {
 	Id             int    `json:"id"`
 	Name           string `json:"name"`
-	ParentId       int    `json:"parent_id"`
+	ParentId       int    `json:"parent_id,omitempy"`
 	LeaderFullName string `json:"leader_full_name"`
 	Partisipants   []BaseEmployee
 	Units          []Unit

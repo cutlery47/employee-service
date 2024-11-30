@@ -143,10 +143,12 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 
 func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBaseEmployeesRequest) (model.GetBaseEmployeesResponse, error) {
 	getEmployeesQuery := `
-	SELECT e.id, e.is_general, e.role_name, e.name, e.family_name, e.middle_name, e.position, u.name
+	SELECT e.id, e.is_general, e.role_name, e.name, e.family_name, e.middle_name, e.position, u.name, ur.parent_id
 	FROM employees AS e
 	JOIN units AS u
 	ON e.unit_id = u.id
+	JOIN units_relations AS ur 
+	ON u.id = ur.child_id
 	WHERE
 	`
 
@@ -162,7 +164,8 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 		return model.GetBaseEmployeesResponse{}, err
 	}
 
-	response := model.GetBaseEmployeesResponse{}
+	var parent_id int
+	employees := model.GetBaseEmployeesResponse{}
 
 	for rows.Next() {
 		employee := model.BaseEmployee{}
@@ -175,15 +178,49 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 			&employee.MiddleName,
 			&employee.Position,
 			&employee.Unit,
+			&parent_id,
 		)
 		if err != nil {
 			return model.GetBaseEmployeesResponse{}, err
 		}
 
-		response = append(response, employee)
+		employees = append(employees, employee)
 	}
 
-	return response, nil
+	if len(employees) == 0 {
+		return model.GetBaseEmployeesResponse{}, ErrUserNotFound
+	}
+
+	getParentName := `
+	SELECT u.name 
+	FROM units AS u
+	JOIN units_relations AS ur
+	ON u.id = ur.child_id
+	WHERE 
+	ur.child_id = $1
+	`
+
+	for i := 0; i < len(employees); i++ {
+		var parentUnit string
+		parentMap := make(map[string]string)
+
+		row, err := r.db.QueryContext(ctx, getParentName, parent_id)
+		if err != nil {
+			return model.GetBaseEmployeesResponse{}, err
+		}
+
+		if err := row.Scan(&parentUnit); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				parentMap[employees[i].Unit] = ""
+			} else {
+				return model.GetBaseEmployeesResponse{}, nil
+			}
+		}
+		parentMap[employees[i].Name] = parentUnit
+		employees[i].StringDict = parentMap
+	}
+
+	return employees, nil
 }
 
 func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBaseEmployeesRequest, applied *[]any) (string, error) {
