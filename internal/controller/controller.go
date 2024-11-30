@@ -1,6 +1,6 @@
 package controller
 
-import repo "github.com/cutlery47/auth-service/internal/repository"
+import repo "github.com/cutlery47/employee-service/internal/repository"
 
 type Controller struct {
 	repo *repo.Repository
