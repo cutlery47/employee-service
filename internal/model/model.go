@@ -29,6 +29,10 @@ type BaseEmployee struct {
 
 // api/v1/employee (POST)
 
+type GetEmployeeRequest struct {
+	Id int `json:"id,omitempty"`
+}
+
 type GetEmployeeResponse struct {
 	Id          int    `json:"id"`
 	Role        string `json:"role"`

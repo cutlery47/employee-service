@@ -71,7 +71,7 @@ func NewRepository(conf config.Postgres) (*Repository, error) {
 
 func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployeeResponse, error) {
 	getEmployeeQuery := `
-	SELECT (id, role, name, family_name, middle_name, phone, city, project, office_address, position, birth_date, unit_id)
+	SELECT e.id, e.role_name, e.name, e.family_name, e.middle_name, e.phone, e.city, e.project, e.office_address, e.position, e.birth_date, e.unit_id
 	FROM employees AS e
 	WHERE
 	e.id = $1
@@ -102,7 +102,7 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 	}
 
 	getTeammatesQuery := `
-	SELECT (e.id, is_general, role, name, family_name, middle_name, position, u.name)
+	SELECT e.id, e.is_general, e.role_name, e.name, e.family_name, e.middle_name, e.position, u.name
 	FROM employees AS e
 	JOIN units AS u
 	ON e.unit_id = u.id
@@ -118,17 +118,22 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 	teammates := []model.BaseEmployee{}
 	for rows.Next() {
 		teammate := model.BaseEmployee{}
-		rows.Scan(
+		if err := rows.Scan(
 			&teammate.Id,
 			&teammate.IsGeneral,
 			&teammate.Role,
+			&teammate.Name,
 			&teammate.FamilyName,
 			&teammate.MiddleName,
 			&teammate.Position,
 			&teammate.Unit,
-		)
+		); err != nil {
+			return model.GetEmployeeResponse{}, err
+		}
 
-		teammates = append(teammates, teammate)
+		if teammate.Id != id {
+			teammates = append(teammates, teammate)
+		}
 	}
 
 	response.Teammates = teammates
@@ -137,7 +142,7 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 
 func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBaseEmployeesRequest) (model.GetBaseEmployeesResponse, error) {
 	getEmployeesQuery := `
-	SELECT (e.id, is_general, role, name, family_name, middle_name, position, u.name)
+	SELECT e.id, is_general, role, name, family_name, middle_name, position, u.name)
 	FROM employees AS e
 	JOIN units AS u
 	ON e.unit_id = u.id

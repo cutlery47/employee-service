@@ -1,24 +1,5 @@
-CREATE TABLE IF NOT EXISTS units (
-    id              SERIAL PRIMARY KEY,
-    name            VARCHAR(256)
-);
+DROP TABLE IF EXISTS employees;
 
-CREATE TABLE IF NOT EXISTS units_relations (
-    id                          SERIAL PRIMARY KEY,
-    parent_id       INTEGER     REFERENCES units(id),
-    child_id        INTEGER     REFERENCES units(id)
-);
+DROP TABLE IF EXISTS units_relations;
 
-CREATE TABLE IF NOT EXISTS employees (
-    id                              SERIAL PRIMARY KEY,
-    unit_id         INTEGER         REFERENCES units(id),
-    name            VARCHAR(256),
-    family_name     VARCHAR(256),
-    middle_name     VARCHAR(256),
-    phone           VARCHAR(256),
-    city            VARCHAR(256),
-    project         VARCHAR(256),
-    office_address  VARCHAR(256),
-    position        VARCHAR(256),
-    birth_date      VARCHAR(256)
-);
+DROP TABLE IF EXISTS units;

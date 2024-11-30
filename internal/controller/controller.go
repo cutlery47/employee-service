@@ -9,6 +9,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/sirupsen/logrus"
 	echoSwagger "github.com/swaggo/echo-swagger"
+
+	_ "github.com/cutlery47/employee-service/docs"
 )
 
 type Controller struct {
@@ -29,20 +31,25 @@ func NewController(repo *repo.Repository, e *echo.Echo, errLog, infoLog *logrus.
 
 	v1 := e.Group("/api/v1", requestLoggerMiddleware(infoLog))
 	{
-		v1.POST("/employees", ctl.GetEmployee)
-		v1.POST("/employee", ctl.GetBaseEmpoyees)
+		v1.POST("/employees", ctl.GetBaseEmpoyees)
+		v1.POST("/employee", ctl.GetEmployee)
 	}
 }
 
-// /api/v1/employee (POST)
+// @Summary		Полуение конкретного сотрудника
+// @Tags		Employee
+// @Param		json		body		model.GetEmployeeRequest		true	"json body"
+// @Success	200	{object}	model.GetEmployeeResponse
+// @Failure	400	{object}	echo.HTTPError
+// @Failure	404	{object}	echo.HTTPError
+// @Failure	500	{object}	echo.HTTPError
+// @Router		/api/v1/employee [post]
 func (ctl *Controller) GetEmployee(c echo.Context) error {
 	ctx := c.Request().Context()
 
 	body := c.Request().Body
 
-	request := struct {
-		Id int `json:"id,omitempty"`
-	}{}
+	request := model.GetEmployeeRequest{}
 
 	decoder := json.NewDecoder(body)
 	err := decoder.Decode(&request)
