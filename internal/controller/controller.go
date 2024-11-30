@@ -131,7 +131,7 @@ func (ctl *Controller) GetHint(c echo.Context) error {
 	} else if request.Project != "" {
 		res, err = ctl.repo.GetHints(ctx, "project", request.Project)
 	} else if request.Role != "" {
-		res, err = ctl.repo.GetHints(ctx, "role", request.Role)
+		res, err = ctl.repo.GetHints(ctx, "role_name", request.Role)
 	} else if request.Unit != "" {
 		res, err = ctl.repo.GetHints(ctx, "unit", request.Unit)
 	} else if request.Name != "" {

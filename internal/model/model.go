@@ -85,11 +85,6 @@ type GetEmployeeNamesResponse struct {
 	Names []string `json:"names"`
 }
 
-type Unit struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
-}
-
 // api/v1/unit (POST)
 
 type GetUnitRequest struct {
@@ -97,10 +92,10 @@ type GetUnitRequest struct {
 }
 
 // -> Unit
-type GetUnitResponse struct {
+type Unit struct {
 	Id             int    `json:"id"`
 	Name           string `json:"name"`
-	ParentId       int    `json:"parent_id,omitempy"`
+	ParentId       int    `json:"unit_parent_id"`
 	LeaderFullName string `json:"leader_full_name"`
 	Partisipants   []BaseEmployee
 	Units          []Unit

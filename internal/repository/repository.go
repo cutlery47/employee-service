@@ -337,25 +337,35 @@ func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBas
 }
 
 func (r *Repository) GetHints(ctx context.Context, field string, value string) (interface{}, error) {
-	getHintsQuery := `
-	SELECT $1
-	FROM employees AS e
-	WHERE
-	e.$1 LIKE '$2%';
-	`
-
-	rows, err := r.db.QueryContext(ctx, getHintsQuery, field, value)
-
+	var getHintsQuery string
+	if field == "unit" {
+		getHintsQuery = fmt.Sprintf("SELECT name FROM units AS u WHERE LOWER(u.name) LIKE LOWER('%s%%')", value)
+		//} else if field == "name" {
+		//	getHintsQuery = fmt.Sprintf("SELECT %s FROM employees AS e WHERE LOWER(e.%s) LIKE LOWER('%s%%');", field, field, value)
+	} else {
+		getHintsQuery = fmt.Sprintf("SELECT %s FROM employees AS e WHERE LOWER(e.%s) LIKE LOWER('%s%%');", field, field, value)
+	}
+	rows, err := r.db.QueryContext(ctx, getHintsQuery)
 	if err != nil {
 		return nil, err
 	}
-
 	var hints []string
 	for rows.Next() {
 		var hint string
-		rows.Scan(hint)
+		rows.Scan(&hint)
 		hints = append(hints, hint)
 	}
+	hints = func(strSlice []string) []string {
+		allKeys := make(map[string]bool)
+		list := []string{}
+		for _, item := range strSlice {
+			if _, value := allKeys[item]; !value {
+				allKeys[item] = true
+				list = append(list, item)
+			}
+		}
+		return list
+	}(hints)
 	if field == "city" {
 		var citiesResponse model.GetEmployeeCitiesResponse
 		citiesResponse.Cities = hints
@@ -368,7 +378,7 @@ func (r *Repository) GetHints(ctx context.Context, field string, value string) (
 		var projectsResponse model.GetEmployeeProjectsResponse
 		projectsResponse.Projects = hints
 		return projectsResponse, nil
-	} else if field == "role" {
+	} else if field == "role_name" {
 		var rolesResponse model.GetEmployeeRolesResponse
 		rolesResponse.Roles = hints
 		return rolesResponse, nil
@@ -384,7 +394,7 @@ func (r *Repository) GetHints(ctx context.Context, field string, value string) (
 	return nil, nil
 }
 
-func (r *Repository) GetUnit(ctx context.Context, id int) (model.GetUnitResponse, error) {
+func (r *Repository) GetUnit(ctx context.Context, id int) (model.Unit, error) {
 	getLeaderNameQuery := `
 	SELECT name, family_name, middle_name
 	FROM employees AS e
@@ -399,86 +409,199 @@ func (r *Repository) GetUnit(ctx context.Context, id int) (model.GetUnitResponse
 	`
 	getParentIdQuery := `
 	SELECT parent_id
-	FROM unit_relation AS ur
+	FROM units_relations AS ur
 	WHERE
 	ur.child_id = $1;
 	`
 	getParticipantsQuery := `
-	SELECT id, is_general, role, name, family_name, middle_name, position
+	SELECT e.id, e.is_general, e.role_name, e.name, e.family_name, e.middle_name, e.position
 	FROM employees AS e
 	WHERE
 	e.unit_id = $1;
 	`
 	getUnitsQuery := `
-	SELECT u.id, u.name
-	FROM units as u
-	JOIN unit_relations as ur
-	ON u.id = ur.child_id
-	WHERE ur.parent_id = $1
+	SELECT child_id
+	FROM units_relations as ur
+	WHERE ur.parent_id = $1;
 	`
 
 	var (
-		response                                       model.GetUnitResponse
+		response                                       model.Unit
 		leaderName, leaderFamilyName, leaderMiddleName string
 		unitName                                       string
 		parentId                                       int
 		participants                                   []model.BaseEmployee
+		unit_id                                        []int
 		units                                          []model.Unit
 	)
 
 	row := r.db.QueryRowContext(ctx, getLeaderNameQuery, id)
-	if err := row.Scan(leaderName, leaderFamilyName, leaderMiddleName); err != nil {
+	if err := row.Scan(&leaderName, &leaderFamilyName, &leaderMiddleName); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.GetUnitResponse{}, ErrUserNotFound
+			return model.Unit{}, ErrUserNotFound
 		}
-		return model.GetUnitResponse{}, err
+		return model.Unit{}, err
 	}
 	row = r.db.QueryRowContext(ctx, getUnitNameQuery, id)
-	if err := row.Scan(unitName); err != nil {
+	if err := row.Scan(&unitName); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.GetUnitResponse{}, ErrUserNotFound
+			return model.Unit{}, ErrUserNotFound
 		}
-		return model.GetUnitResponse{}, err
+		return model.Unit{}, err
 	}
 	row = r.db.QueryRowContext(ctx, getParentIdQuery, id)
-	if err := row.Scan(parentId); err != nil {
+	if err := row.Scan(&parentId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.GetUnitResponse{}, ErrUserNotFound
+			parentId = -1
+		} else {
+			return model.Unit{}, err
 		}
-		return model.GetUnitResponse{}, err
 	}
 
-	rows, err := r.db.QueryContext(ctx, getParticipantsQuery, id)
+	rows, err := r.db.QueryContext(ctx, getUnitsQuery, id)
 	if err != nil {
-		return model.GetUnitResponse{}, err
+		return model.Unit{}, err
 	}
-
 	for rows.Next() {
-		participant := model.BaseEmployee{}
-		rows.Scan(
-			&participant.Id,
-			&participant.IsGeneral,
-			&participant.Role,
-			&participant.FamilyName,
-			&participant.MiddleName,
-			&participant.Position,
-		)
-		participant.Unit = unitName
-		participants = append(participants, participant)
+		var uid int
+		rows.Scan(&uid)
+		unit_id = append(unit_id, uid)
+	}
+	if len(unit_id) == 0 {
+		rows, err = r.db.QueryContext(ctx, getParticipantsQuery, id)
+		if err != nil {
+			return model.Unit{}, err
+		}
+		for rows.Next() {
+			participant := model.BaseEmployee{}
+			if err := rows.Scan(
+				&participant.Id,
+				&participant.IsGeneral,
+				&participant.Role,
+				&participant.Name,
+				&participant.FamilyName,
+				&participant.MiddleName,
+				&participant.Position,
+			); err != nil {
+				return model.Unit{}, err
+			}
+			participant.Unit = unitName
+			participants = append(participants, participant)
+		}
+	} else {
+		for _, elem := range unit_id {
+			unit, err := r.getLastUnit(ctx, elem)
+			if err != nil {
+				return model.Unit{}, err
+			}
+			units = append(units, unit)
+		}
 	}
 
-	rows, err = r.db.QueryContext(ctx, getUnitsQuery, id)
+	response.Id = id
+	response.Name = unitName
+	response.ParentId = parentId
+	response.LeaderFullName = fmt.Sprintf("%s %s %s", leaderName, leaderFamilyName, leaderMiddleName)
+	response.Partisipants = participants
+	response.Units = units
+
+	return response, nil
+}
+
+func (r *Repository) getLastUnit(ctx context.Context, id int) (model.Unit, error) {
+	getLeaderNameQuery := `
+	SELECT name, family_name, middle_name
+	FROM employees AS e
+	WHERE
+	e.unit_id = $1 AND e.is_general = TRUE;
+	`
+	getUnitNameQuery := `
+	SELECT name
+	FROM units AS u
+	WHERE
+	u.id = $1;
+	`
+	getParentIdQuery := `
+	SELECT parent_id
+	FROM units_relations AS ur
+	WHERE
+	ur.child_id = $1;
+	`
+	getParticipantsQuery := `
+	SELECT e.id, e.is_general, e.role_name, e.name, e.family_name, e.middle_name, e.position
+	FROM employees AS e
+	WHERE
+	e.unit_id = $1;
+	`
+	getUnitsQuery := `
+	SELECT child_id
+	FROM units_relations as ur
+	WHERE ur.parent_id = $1;
+	`
+
+	var (
+		response                                       model.Unit
+		leaderName, leaderFamilyName, leaderMiddleName string
+		unitName                                       string
+		parentId                                       int
+		participants                                   []model.BaseEmployee
+		unit_id                                        []int
+		units                                          []model.Unit
+	)
+
+	row := r.db.QueryRowContext(ctx, getLeaderNameQuery, id)
+	if err := row.Scan(&leaderName, &leaderFamilyName, &leaderMiddleName); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.Unit{}, ErrUserNotFound
+		}
+		return model.Unit{}, err
+	}
+	row = r.db.QueryRowContext(ctx, getUnitNameQuery, id)
+	if err := row.Scan(&unitName); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.Unit{}, ErrUserNotFound
+		}
+		return model.Unit{}, err
+	}
+	row = r.db.QueryRowContext(ctx, getParentIdQuery, id)
+	if err := row.Scan(&parentId); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			parentId = -1
+		} else {
+			return model.Unit{}, err
+		}
+	}
+
+	rows, err := r.db.QueryContext(ctx, getUnitsQuery, id)
 	if err != nil {
-		return model.GetUnitResponse{}, err
+		return model.Unit{}, err
 	}
-
 	for rows.Next() {
-		unit := model.Unit{}
-		rows.Scan(
-			&unit.Id,
-			&unit.Name,
-		)
-		units = append(units, unit)
+		var uid int
+		rows.Scan(&uid)
+		unit_id = append(unit_id, uid)
+	}
+	if len(unit_id) == 0 {
+		rows, err = r.db.QueryContext(ctx, getParticipantsQuery, id)
+		if err != nil {
+			return model.Unit{}, err
+		}
+		for rows.Next() {
+			participant := model.BaseEmployee{}
+			if err := rows.Scan(
+				&participant.Id,
+				&participant.IsGeneral,
+				&participant.Role,
+				&participant.Name,
+				&participant.FamilyName,
+				&participant.MiddleName,
+				&participant.Position,
+			); err != nil {
+				return model.Unit{}, err
+			}
+			participant.Unit = unitName
+			participants = append(participants, participant)
+		}
 	}
 
 	response.Id = id
