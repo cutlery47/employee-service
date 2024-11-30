@@ -101,6 +101,99 @@
                     }
                 }
             }
+        },
+        "/api/v1/hint": {
+            "post": {
+                "tags": [
+                    "Hint"
+                ],
+                "summary": "Получение подсказок по полям",
+                "parameters": [
+                    {
+                        "description": "json body",
+                        "name": "json",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.GetHintRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/unit": {
+            "post": {
+                "tags": [
+                    "Unit"
+                ],
+                "summary": "Получение данных о юните",
+                "parameters": [
+                    {
+                        "description": "json body",
+                        "name": "json",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.GetUnitRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.GetUnitResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -217,6 +310,77 @@
                     "items": {
                         "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee"
                     }
+                }
+            }
+        },
+        "github_com_cutlery47_employee-service_internal_model.GetHintRequest": {
+            "type": "object",
+            "properties": {
+                "city_search_term": {
+                    "type": "string"
+                },
+                "name_search_term": {
+                    "type": "string"
+                },
+                "position_search_term": {
+                    "type": "string"
+                },
+                "project_search_term": {
+                    "type": "string"
+                },
+                "role_search_term": {
+                    "type": "string"
+                },
+                "unit_search_term": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_cutlery47_employee-service_internal_model.GetUnitRequest": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_cutlery47_employee-service_internal_model.GetUnitResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "leader_full_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "partisipants": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee"
+                    }
+                },
+                "units": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.Unit"
+                    }
+                }
+            }
+        },
+        "github_com_cutlery47_employee-service_internal_model.Unit": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         }

@@ -2,7 +2,6 @@ package controller
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/cutlery47/employee-service/internal/model"
 	repo "github.com/cutlery47/employee-service/internal/repository"
@@ -100,6 +99,14 @@ func (ctl *Controller) GetBaseEmpoyees(c echo.Context) error {
 	return c.JSON(200, employees)
 }
 
+// @Summary			Получение подсказок по полям
+// @Tags			Hint
+// @Param			json		body		model.GetHintRequest	true	"json body"
+// @Success	200		{object}	model.GetBaseEmployeesResponse
+// @Failure	400		{object}	echo.HTTPError
+// @Failure	404		{object}	echo.HTTPError
+// @Failure	500		{object}	echo.HTTPError
+// @Router			/api/v1/hint [post]
 func (ctl *Controller) GetHint(c echo.Context) error {
 	ctx := c.Request().Context()
 	body := c.Request().Body
@@ -126,7 +133,7 @@ func (ctl *Controller) GetHint(c echo.Context) error {
 	} else if request.Name != "" {
 		res, err = ctl.repo.GetHints(ctx, "name", request.Name)
 	} else {
-		return fmt.Errorf("error: no args")
+		return echo.NewHTTPError(400, "no args")
 	}
 	if err != nil {
 		return ctl.h.handleError(err)
@@ -135,6 +142,14 @@ func (ctl *Controller) GetHint(c echo.Context) error {
 	return c.JSON(200, res)
 }
 
+// @Summary			Получение данных о юните
+// @Tags			Unit
+// @Param			json		body		model.GetUnitRequest	true	"json body"
+// @Success	200		{object}	model.GetUnitResponse
+// @Failure	400		{object}	echo.HTTPError
+// @Failure	404		{object}	echo.HTTPError
+// @Failure	500		{object}	echo.HTTPError
+// @Router			/api/v1/unit [post]
 func (ctl *Controller) GetUnit(c echo.Context) error {
 	ctx := c.Request().Context()
 

@@ -58,3 +58,4 @@
 {"URI":"/api/v1/employees","error":null,"ip":"::1","level":"info","method":"POST","msg":"request","status":200,"time":"2024-11-30T20:52:07+03:00"}
 {"URI":"/api/v1/employees","error":"code=400, message=pagination limit must be provided","ip":"::1","level":"info","method":"POST","msg":"request","status":400,"time":"2024-11-30T20:56:20+03:00"}
 {"URI":"/api/v1/employees","error":null,"ip":"::1","level":"info","method":"POST","msg":"request","status":200,"time":"2024-11-30T20:56:27+03:00"}
+{"URI":"/api/v1/hint","error":"code=500, message=Internal Server Error","ip":"::1","level":"info","method":"POST","msg":"request","status":500,"time":"2024-11-30T21:23:37+03:00"}
