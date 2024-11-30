@@ -8,6 +8,8 @@ import (
 
 	"github.com/cutlery47/employee-service/internal/config"
 	"github.com/cutlery47/employee-service/internal/model"
+
+	_ "github.com/lib/pq"
 )
 
 type Repository struct {
@@ -24,7 +26,7 @@ func NewRepository(conf config.Postgres) (*Repository, error) {
 		conf.DB,
 	)
 
-	db, err := sql.Open("pgx", url)
+	db, err := sql.Open("postgres", url)
 	if err != nil {
 		return nil, fmt.Errorf("sql.Open: %v", err)
 	}

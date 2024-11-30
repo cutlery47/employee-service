@@ -32,14 +32,17 @@ func Run() error {
 		return fmt.Errorf("error when setting up error logger: %v", err)
 	}
 
+	log := logger.New(logrus.DebugLevel)
 	infoLog := logger.WithFile(logger.WithFormat(logger.New(logrus.InfoLevel), &logrus.JSONFormatter{}), infoFd)
 	errLog := logger.WithFile(logger.WithFormat(logger.New(logrus.ErrorLevel), &logrus.JSONFormatter{}), errFd)
 
+	log.Debug("intializing repository...")
 	repo, err := repository.NewRepository(conf.Postgres)
 	if err != nil {
 		return fmt.Errorf("error when setting up repository: %v", err)
 	}
 
+	log.Debug("intializing controller...")
 	e := echo.New()
 	controller.NewController(repo, e, errLog, infoLog)
 
