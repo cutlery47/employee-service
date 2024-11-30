@@ -8,6 +8,12 @@ import (
 
 	"github.com/cutlery47/employee-service/internal/config"
 	"github.com/cutlery47/employee-service/internal/model"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+
+	"github.com/sirupsen/logrus"
+
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	_ "github.com/lib/pq"
 )
@@ -34,6 +40,28 @@ func NewRepository(conf config.Postgres) (*Repository, error) {
 	err = db.Ping()
 	if err != nil {
 		return nil, fmt.Errorf("db.Ping: %v", err)
+	}
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return nil, fmt.Errorf("postgers.WithInstance: %v", err)
+	}
+
+	migrations := fmt.Sprintf("file://%v", conf.Migrations)
+	m, err := migrate.NewWithDatabaseInstance(migrations, conf.DB, driver)
+	if err != nil {
+		return nil, fmt.Errorf("migrate.NewWithDatabaseInstance: %v", err)
+	}
+
+	logrus.Debug("applying migrations...")
+	if err := m.Up(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			logrus.Debug("nothing to migrate")
+		} else {
+			return nil, fmt.Errorf("error when migrating: %v", err)
+		}
+	} else {
+		logrus.Debug("migrated successfully!")
 	}
 
 	return &Repository{
