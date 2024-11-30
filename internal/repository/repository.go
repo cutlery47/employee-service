@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/cutlery47/employee-service/internal/config"
 	"github.com/cutlery47/employee-service/internal/model"
@@ -15,7 +14,7 @@ type Repository struct {
 	db *sql.DB
 }
 
-func NewRepository(conf config.Postgres) *Repository {
+func NewRepository(conf config.Postgres) (*Repository, error) {
 	url := fmt.Sprintf(
 		"postgresql://%v:%v@%v:%v/%v?sslmode=disable",
 		conf.Username,
@@ -27,43 +26,44 @@ func NewRepository(conf config.Postgres) *Repository {
 
 	db, err := sql.Open("pgx", url)
 	if err != nil {
-		log.Fatalf("error while open db: %v", err)
+		return nil, fmt.Errorf("sql.Open: %v", err)
 	}
 
 	err = db.Ping()
 	if err != nil {
-		log.Fatalf("error while pinging db: %v", err)
+		return nil, fmt.Errorf("db.Ping: %v", err)
 	}
 
 	return &Repository{
 		db: db,
-	}
+	}, nil
 }
 
 func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployeeResponse, error) {
 	getEmployeeQuery := `
-	SELECT (id, part, name, family_name, middle_name, phone, city, office, position, date_of_birth, unit)
+	SELECT (id, role, name, family_name, middle_name, phone, city, project, office_address, position, birth_date, unit_id)
 	FROM employees AS e
 	WHERE
 	e.id = $1
 	`
 
 	response := model.GetEmployeeResponse{}
-
-	var unit string
+	var unitId int
 
 	row := r.db.QueryRowContext(ctx, getEmployeeQuery, id)
 	if err := row.Scan(
 		&response.Id,
-		&response.Part,
+		&response.Role,
 		&response.Name,
 		&response.FamilyName,
 		&response.MiddleName,
 		&response.Phone,
+		&response.City,
+		&response.Project,
 		&response.Office,
 		&response.Position,
 		&response.DateOfBirth,
-		&unit,
+		&unitId,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return model.GetEmployeeResponse{}, ErrUserNotFound
@@ -72,13 +72,15 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 	}
 
 	getTeammatesQuery := `
-	SELECT (unit, position, name, middle_name, family_name, part)
+	SELECT (e.id, is_general, role, name, family_name, middle_name, position, u.name)
 	FROM employees AS e
+	JOIN units AS u
+	ON e.unit_id = u.id
 	WHERE
-	e.unit = $1
+	u.id = $1
 	`
 
-	rows, err := r.db.QueryContext(ctx, getTeammatesQuery, unit)
+	rows, err := r.db.QueryContext(ctx, getTeammatesQuery, unitId)
 	if err != nil {
 		return model.GetEmployeeResponse{}, err
 	}
@@ -87,12 +89,13 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 	for rows.Next() {
 		teammate := model.BaseEmployee{}
 		rows.Scan(
-			&teammate.Unit,
-			&teammate.Position,
-			&teammate.Name,
-			&teammate.MiddleName,
+			&teammate.Id,
+			&teammate.IsGeneral,
+			&teammate.Role,
 			&teammate.FamilyName,
-			&teammate.Part,
+			&teammate.MiddleName,
+			&teammate.Position,
+			&teammate.Unit,
 		)
 
 		teammates = append(teammates, teammate)
@@ -102,66 +105,113 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 	return response, nil
 }
 
-func (r *Repository) GetBaseEmployees(ctx context.Context, id int) (model.GetBaseEmployeesResponse, error) {
-	// query := `
-	// SELECT * FROM
-	// employees AS e
-	// WHERE e.id = $1
-	// `
+func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBaseEmployeesRequest) (model.GetBaseEmployeesResponse, error) {
+	getEmployeesQuery := `
+	SELECT (e.id, is_general, role, name, family_name, middle_name, position, u.name)
+	FROM employees AS e
+	JOIN units AS u
+	ON e.unit_id = u.id
+	WHERE
+	`
 
-	// res := model.EmployeeMeta{}
+	var appliedFilters []interface{}
 
-	// row := r.db.QueryRowContext(ctx, query, id)
-	// err := row.Scan(&res.Id, &res.Name, &res.Surname, &res.Department, &res.Role)
-	// if err != nil {
-	// 	if errors.Is(err, sql.ErrNoRows) {
-	// 		return model.EmployeeMeta{}, ErrUserNotFound
-	// 	}
-	// 	return model.EmployeeMeta{}, err
-	// }
+	filteredQuery := r.applyBaseEmployeeFilters(getEmployeesQuery, request, &appliedFilters)
+	rows, err := r.db.QueryContext(ctx, filteredQuery, appliedFilters...)
+	if err != nil {
+		return model.GetBaseEmployeesResponse{}, err
+	}
 
-	return model.GetBaseEmployeesResponse{}, nil
+	response := model.GetBaseEmployeesResponse{}
+
+	for rows.Next() {
+		employee := model.BaseEmployee{}
+		err := rows.Scan(
+			&employee.Id,
+			&employee.IsGeneral,
+			&employee.Role,
+			&employee.Name,
+			&employee.FamilyName,
+			&employee.MiddleName,
+			&employee.Position,
+			&employee.Unit,
+		)
+		if err != nil {
+			return model.GetBaseEmployeesResponse{}, err
+		}
+
+		response = append(response, employee)
+	}
+
+	return response, nil
 }
 
-func (r *Repository) applyFilters(query string, filter model.GetBaseEmployeesFilter, limit, offset int, applied *[]any) (string, error) {
-	// // контейнер со значениями структуры
-	// st := reflect.ValueOf(filter)
-	// // количество полей внутри структуры
-	// numFields := st.NumField()
-	// // количество примененных фильтров
-	// filterCount := 0
+func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBaseEmployeesRequest, applied *[]any) string {
+	filterCount := 0
 
-	// // итерируемся по полям структуры
-	// for i := 0; i < numFields; i++ {
-	// 	if filterCount > 0 {
-	// 		query += "AND\n"
-	// 	}
-	// 	filterCount++
+	if request.Id != 0 {
+		filterCount++
+		query += fmt.Sprintf("id = $%v\n", filterCount)
+		*applied = append(*applied, request.Id)
+	}
 
-	// 	structField :=
+	if request.FullName != "" {
+		if filterCount > 0 {
+			query += "AND\n"
+		}
+		filterCount++
+		query += fmt.Sprintf("full_name = $%v\n", filterCount)
+		*applied = append(*applied, request.FullName)
+	}
 
-	// 	// достаем имя и значения поля структуры
-	// 	fieldName := st.Field(i).Type().Name()
-	// 	fieldValue := st.FieldByName(fieldName)
+	if request.Unit != "" {
+		if filterCount > 0 {
+			query += "AND\n"
+		}
+		filterCount++
+		query += fmt.Sprintf("unit = $%v\n", filterCount)
+		*applied = append(*applied, request.Unit)
+	}
 
-	// 	if fieldName == "DateOfBirth" {
-	// 		// достаем из поля строку и конвертируем в time.Time
-	// 		strTime := fieldValue.String()
+	if request.Project != "" {
+		if filterCount > 0 {
+			query += "AND\n"
+		}
+		filterCount++
+		query += fmt.Sprintf("project = $%v\n", filterCount)
+		*applied = append(*applied, request.Project)
+	}
 
-	// 		parsedTime, err := time.Parse(time.DateOnly, strTime)
-	// 		if err != nil {
-	// 			return "", ErrWrongDateFormat
-	// 		}
+	if request.Role != "" {
+		if filterCount > 0 {
+			query += "AND\n"
+		}
+		filterCount++
+		query += fmt.Sprintf("role = $%v\n", filterCount)
+		*applied = append(*applied, request.Role)
+	}
 
-	// 		*applied = append(*applied, parsedTime)
-	// 	} else {
-	// 		*applied = append(*applied, fieldValue.String())
-	// 	}
+	if request.Position != "" {
+		if filterCount > 0 {
+			query += "AND\n"
+		}
+		filterCount++
+		query += fmt.Sprintf("position = $%v\n", filterCount)
+		*applied = append(*applied, request.Position)
+	}
 
-	// 	fieldTag := utils.GetStructTag()
+	if request.City != "" {
+		if filterCount > 0 {
+			query += "AND\n"
+		}
+		filterCount++
+		query += fmt.Sprintf("city = $%v\n", filterCount)
+		*applied = append(*applied, request.City)
+	}
 
-	// 	query += fmt.Sprintf("%v = $%v", xyu, filterCount)
-	// 	*applied = append(*applied, pizda)
-	// }
-	return "", nil
+	filterCount++
+	query += fmt.Sprintf("LIMIT $%v OFFSET $%v;", filterCount, filterCount+1)
+	*applied = append(*applied, request.Limit, request.Offset)
+
+	return query
 }

@@ -3,39 +3,44 @@ package model
 // api/v1/employees (POST)
 
 type GetBaseEmployeesRequest struct {
-	City     string
-	Position string
-	Part     string
-	Project  string
-	Unit     string
-	FullName string
+	Id       int    `json:"id,omitempty"`
+	FullName string `json:"full_name,omitempty"`
+	Unit     string `json:"unit,omitempty"`
+	Project  string `json:"project,omitempty"`
+	Role     string `json:"role,omitempty"`
+	Position string `json:"position,omitempty"`
+	City     string `json:"city,omitempty"`
+	Limit    int    `json:"limit"`
+	Offset   int    `json:"offset"`
 }
 
 type GetBaseEmployeesResponse []BaseEmployee
 
 type BaseEmployee struct {
-	IsGeneral  bool
-	Unit       string
-	Position   string
-	MiddleName string
-	FamilyName string
-	Name       string
-	Part       string
+	Id         int    `json:"id"`
+	IsGeneral  bool   `json:"is_general"`
+	Role       string `json:"role"`
+	Name       string `json:"name"`
+	FamilyName string `json:"family_name"`
+	MiddleName string `json:"middle_name"`
+	Position   string `json:"position"`
+	Unit       string `json:"unit"`
 }
 
 // api/v1/employee (POST)
 
 type GetEmployeeResponse struct {
-	Id          int
-	Part        string
-	Name        string
-	FamilyName  string
-	MiddleName  string
-	Phone       string
-	City        string
-	Office      string
-	Position    string
-	DateOfBirth string
+	Id          int    `json:"id"`
+	Role        string `json:"role"`
+	Name        string `json:"name"`
+	FamilyName  string `json:"family_name"`
+	MiddleName  string `json:"middle_name"`
+	Phone       string `json:"phone"`
+	City        string `json:"city"`
+	Project     string `json:"project"`
+	Office      string `json:"office_address"`
+	Position    string `json:"position"`
+	DateOfBirth string `json:"birth_date"`
 	Teammates   []BaseEmployee
 }
 
