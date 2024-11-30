@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"encoding/json"
+
 	repo "github.com/cutlery47/employee-service/internal/repository"
 	"github.com/labstack/echo/v4"
 	echoSwagger "github.com/swaggo/echo-swagger"
@@ -23,8 +25,8 @@ func NewController(repo *repo.Repository, e *echo.Echo) *Controller {
 		repo: repo,
 	}
 
-	v1.POST("/employees", ctl.handleGet)
-	v1.POST("/employee", ctl.handleGetMeta)
+	v1.POST("/employees", ctl.Get)
+	v1.POST("/employee", ctl.GetMeta)
 
 	return ctl
 }
@@ -37,44 +39,33 @@ func NewController(repo *repo.Repository, e *echo.Echo) *Controller {
 // fullname (optional)
 // no args - error
 
-func (ctl *Controller) handleGet(c echo.Context) error {
-	// ctx := c.Request().Context()
+// /api/v1/employee (POST)
+func (ctl *Controller) Get(c echo.Context) error {
+	ctx := c.Request().Context()
 
-	// params := c.QueryParams()
+	body := c.Request().Body
 
-	// filters, err := model.FromURL(params)
-	// if err != nil {
-	// 	return handleError(err)
-	// }
+	request := struct {
+		id int
+	}{}
 
-	// if !params.Has("limit") {
-	// 	return echo.NewHTTPError(400, "pagination limit was not provided")
-	// }
+	decoder := json.NewDecoder(body)
+	err := decoder.Decode(&request)
 
-	// if !params.Has("offset") {
-	// 	return echo.NewHTTPError(400, "pagination offset was not provided")
-	// }
+	if err != nil {
+		panic(err)
+	}
 
-	// limit, err := strconv.Atoi(params.Get("limit"))
-	// if err != nil {
-	// 	return echo.NewHTTPError(400, "couldn't parse pagination limit")
-	// }
+	res, err := ctl.repo.GetEmployee(ctx, request.id)
+	if err != nil {
+		return handleError(err)
+	}
 
-	// offset, err := strconv.Atoi(params.Get("offset"))
-	// if err != nil {
-	// 	return echo.NewHTTPError(400, "couldn't parse pagination offset")
-	// }
-
-	// res, err := ctl.repo.Get(ctx, filters, limit, offset)
-	// if err != nil {
-	// 	return handleError(err)
-	// }
-
-	// return c.JSON(200, res)
-	return nil
+	return c.JSON(200, res)
 }
 
-func (ctl *Controller) handleGetMeta(c echo.Context) error {
+// api/v1/employees
+func (ctl *Controller) GetMeta(c echo.Context) error {
 	// ctx := c.Request().Context()
 
 	// id := c.QueryParam("id")

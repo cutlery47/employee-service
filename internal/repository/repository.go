@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
@@ -39,24 +40,69 @@ func NewRepository(conf config.Postgres) *Repository {
 	}
 }
 
-func (r *Repository) Get(ctx context.Context, filter model.GetBaseEmployeesFilter, limit, offset int) (model.GetBaseEmployeesResponse, error) {
-	// query := `
-	// SELECT (id, name, surname, department, role)
-	// FROM employees AS e
-	// WHERE
-	// `
+func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployeeResponse, error) {
+	getEmployeeQuery := `
+	SELECT (id, part, name, family_name, middle_name, phone, city, office, position, date_of_birth, unit)
+	FROM employees AS e
+	WHERE
+	e.id = $1
+	`
 
-	// var appliedFilters []interface{}
+	response := model.GetEmployeeResponse{}
 
-	// filteredQuery, err := r.applyFilters(query, filter, limit, offset, &appliedFilters)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	var unit string
 
-	return nil, nil
+	row := r.db.QueryRowContext(ctx, getEmployeeQuery, id)
+	if err := row.Scan(
+		&response.Id,
+		&response.Part,
+		&response.Name,
+		&response.FamilyName,
+		&response.MiddleName,
+		&response.Phone,
+		&response.Office,
+		&response.Position,
+		&response.DateOfBirth,
+		&unit,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.GetEmployeeResponse{}, ErrUserNotFound
+		}
+		return model.GetEmployeeResponse{}, err
+	}
+
+	getTeammatesQuery := `
+	SELECT (unit, position, name, middle_name, family_name, part)
+	FROM employees AS e
+	WHERE
+	e.unit = $1
+	`
+
+	rows, err := r.db.QueryContext(ctx, getTeammatesQuery, unit)
+	if err != nil {
+		return model.GetEmployeeResponse{}, err
+	}
+
+	teammates := []model.BaseEmployee{}
+	for rows.Next() {
+		teammate := model.BaseEmployee{}
+		rows.Scan(
+			&teammate.Unit,
+			&teammate.Position,
+			&teammate.Name,
+			&teammate.MiddleName,
+			&teammate.FamilyName,
+			&teammate.Part,
+		)
+
+		teammates = append(teammates, teammate)
+	}
+
+	response.Teammates = teammates
+	return response, nil
 }
 
-func (r *Repository) GetMeta(ctx context.Context, id int) (model.GetBaseEmployeesResponse, error) {
+func (r *Repository) GetBaseEmployees(ctx context.Context, id int) (model.GetBaseEmployeesResponse, error) {
 	// query := `
 	// SELECT * FROM
 	// employees AS e
