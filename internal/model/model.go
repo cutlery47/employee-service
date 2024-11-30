@@ -68,22 +68,57 @@ type GetEmployeeResponse struct {
 // 	Role       string
 // }
 
+// api/v1/hint (POST)
+
+type GetHintRequest struct {
+	City     string `json:"city_search_term,omitempty"`
+	Position string `json:"position_search_term,omitempty"`
+	Project  string `json:"project_search_term,omitempty"`
+	Role     string `json:"role_search_term,omitempty"`
+	Unit     string `json:"unit_search_term,omitempty"`
+	Name     string `json:"name_search_term,omitempty"`
+}
+
 type GetEmployeeCitiesResponse struct {
-	Cities []string
+	Cities []string `json:"cities"`
 }
 
 type GetEmployeePositionsResponse struct {
-	Positions []string
+	Positions []string `json:"positions"`
 }
 
 type GetEmployeeProjectsResponse struct {
-	Projects []string
+	Projects []string `json:"projects"`
 }
 
 type GetEmployeeRolesResponse struct {
-	Roles []string
+	Roles []string `json:"roles"`
 }
 
 type GetEmployeeUnitsResponse struct {
-	Units []string
+	Units []string `json:"units"`
+}
+
+type GetEmployeeNamesResponse struct {
+	Names []string `json:"names"`
+}
+
+type Unit struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+// api/v1/unit (POST)
+
+type GetUnitRequest struct {
+	Id int `json:"id,omitempty"`
+}
+
+type GetUnitResponse struct {
+	Id             int    `json:"id"`
+	Name           string `json:"name"`
+	ParentId       int    `json:"parent_id"`
+	LeaderFullName string `json:"leader_full_name"`
+	Partisipants   []BaseEmployee
+	Units          []Unit
 }

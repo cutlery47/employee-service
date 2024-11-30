@@ -301,7 +301,7 @@ func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBas
 
 func (r *Repository) GetHints(ctx context.Context, field string, value string) (interface{}, error) {
 	getHintsQuery := `
-	SELECT ($1)
+	SELECT $1
 	FROM employees AS e
 	WHERE
 	e.$1 LIKE '$2%';
@@ -339,6 +339,117 @@ func (r *Repository) GetHints(ctx context.Context, field string, value string) (
 		var unitsResponse model.GetEmployeeUnitsResponse
 		unitsResponse.Units = hints
 		return unitsResponse, nil
+	} else if field == "name" {
+		var namesResponse model.GetEmployeeNamesResponse
+		namesResponse.Names = hints
+		return namesResponse, nil
 	}
 	return nil, nil
+}
+
+func (r *Repository) GetUnit(ctx context.Context, id int) (model.GetUnitResponse, error) {
+	getLeaderNameQuery := `
+	SELECT name, family_name, middle_name
+	FROM employees AS e
+	WHERE
+	e.unit_id = $1 AND e.is_general = TRUE;
+	`
+	getUnitNameQuery := `
+	SELECT name
+	FROM units AS u
+	WHERE
+	u.id = $1;
+	`
+	getParentIdQuery := `
+	SELECT parent_id
+	FROM unit_relation AS ur
+	WHERE
+	ur.child_id = $1;
+	`
+	getParticipantsQuery := `
+	SELECT id, is_general, role, name, family_name, middle_name, position
+	FROM employees AS e
+	WHERE
+	e.unit_id = $1;
+	`
+	getUnitsQuery := `
+	SELECT u.id, u.name
+	FROM units as u
+	JOIN unit_relations as ur
+	ON u.id = ur.child_id
+	WHERE ur.parent_id = $1
+	`
+
+	var (
+		response                                       model.GetUnitResponse
+		leaderName, leaderFamilyName, leaderMiddleName string
+		unitName                                       string
+		parentId                                       int
+		participants                                   []model.BaseEmployee
+		units                                          []model.Unit
+	)
+
+	row := r.db.QueryRowContext(ctx, getLeaderNameQuery, id)
+	if err := row.Scan(leaderName, leaderFamilyName, leaderMiddleName); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.GetUnitResponse{}, ErrUserNotFound
+		}
+		return model.GetUnitResponse{}, err
+	}
+	row = r.db.QueryRowContext(ctx, getUnitNameQuery, id)
+	if err := row.Scan(unitName); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.GetUnitResponse{}, ErrUserNotFound
+		}
+		return model.GetUnitResponse{}, err
+	}
+	row = r.db.QueryRowContext(ctx, getParentIdQuery, id)
+	if err := row.Scan(parentId); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.GetUnitResponse{}, ErrUserNotFound
+		}
+		return model.GetUnitResponse{}, err
+	}
+
+	rows, err := r.db.QueryContext(ctx, getParticipantsQuery, id)
+	if err != nil {
+		return model.GetUnitResponse{}, err
+	}
+
+	for rows.Next() {
+		participant := model.BaseEmployee{}
+		rows.Scan(
+			&participant.Id,
+			&participant.IsGeneral,
+			&participant.Role,
+			&participant.FamilyName,
+			&participant.MiddleName,
+			&participant.Position,
+		)
+		participant.Unit = unitName
+		participants = append(participants, participant)
+	}
+
+	rows, err = r.db.QueryContext(ctx, getUnitsQuery, id)
+	if err != nil {
+		return model.GetUnitResponse{}, err
+	}
+
+	for rows.Next() {
+		unit := model.Unit{}
+		rows.Scan(
+			&unit.Id,
+			&unit.Name,
+		)
+		units = append(units, unit)
+	}
+
+	response.Id = id
+	response.Name = unitName
+	response.ParentId = parentId
+	response.LeaderFullName = fmt.Sprintf("%s %s %s", leaderName, leaderFamilyName, leaderMiddleName)
+	response.Partisipants = participants
+	response.Units = units
+
+	return response, nil
 }
