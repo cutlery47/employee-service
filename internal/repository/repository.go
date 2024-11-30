@@ -2,23 +2,36 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
-	"os"
+
+	"github.com/cutlery47/employee-service/internal/config"
 )
 
 type Repository struct {
 	db *sql.DB
 }
 
-func NewRepository() *Repository {
-	db, err := sql.Open("pgx", os.Getenv("DATABASE_URL"))
+func NewRepository(conf config.Postgres) *Repository {
+	url := fmt.Sprintf(
+		"postgresql://%v:%v@%v:%v/%v?sslmode=disable",
+		conf.Username,
+		conf.Password,
+		conf.Host,
+		conf.Port,
+		conf.DB,
+	)
+
+	db, err := sql.Open("pgx", url)
 	if err != nil {
 		log.Fatalf("error while open db: %v", err)
 	}
+
 	err = db.Ping()
 	if err != nil {
 		log.Fatalf("error while pinging db: %v", err)
 	}
+
 	return &Repository{
 		db: db,
 	}

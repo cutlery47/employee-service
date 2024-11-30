@@ -8,8 +8,18 @@ import (
 )
 
 type Config struct {
+	Postgres
 	HTTPServer
 	Logger
+}
+
+type Postgres struct {
+	Username   string `env:"POSTGRES_USER"`
+	Password   string `env:"POSTGRES_PASSWORD"`
+	Host       string `env:"POSTGRES_HOST"`
+	Port       string `env:"POSTGRES_PORT"`
+	DB         string `env:"POSTGRES_DB"`
+	Migrations string `env:"POSTGRES_MIGRATIONS"`
 }
 
 type Logger struct {
