@@ -1,11 +1,14 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/cutlery47/employee-service/internal/config"
+	"github.com/cutlery47/employee-service/internal/model"
 )
 
 type Repository struct {
@@ -41,6 +44,23 @@ func (r *Repository) Get() {
 
 }
 
-func (r *Repository) GetMeta() {
+func (r *Repository) GetMeta(ctx context.Context, id int) (model.UserMeta, error) {
+	query := `
+	SELECT * FROM 
+	employees AS e
+	WHERE e.id = $1
+	`
 
+	res := model.UserMeta{}
+
+	row := r.db.QueryRowContext(ctx, query, id)
+	err := row.Scan(&res.Id, &res.Name, &res.Surname, &res.Department, &res.Role)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return model.UserMeta{}, ErrUserNotFound
+		}
+		return model.UserMeta{}, err
+	}
+
+	return model.UserMeta{}, nil
 }

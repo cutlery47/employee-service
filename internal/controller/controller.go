@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"strconv"
+
 	repo "github.com/cutlery47/employee-service/internal/repository"
 	"github.com/labstack/echo/v4"
 	echoSwagger "github.com/swaggo/echo-swagger"
@@ -32,5 +34,26 @@ func (ctl *Controller) handleGet(c echo.Context) error {
 }
 
 func (ctl *Controller) handleGetMeta(c echo.Context) error {
-	return nil
+	ctx := c.Request().Context()
+
+	id := c.QueryParam("id")
+	if id == "" {
+		return echo.NewHTTPError(400, "id was not provided")
+	}
+
+	intId, err := strconv.Atoi(id)
+	if err != nil {
+		return echo.ErrInternalServerError
+	}
+
+	meta, err := ctl.repo.GetMeta(ctx, intId)
+	if err != nil {
+		return ctl.handleError(err)
+	}
+
+	return c.JSON(200, meta)
+}
+
+func (ctl *Controller) handleError(err error) *echo.HTTPError {
+	return echo.ErrInternalServerError
 }
