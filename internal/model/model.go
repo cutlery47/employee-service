@@ -64,3 +64,23 @@ type GetEmployeeResponse struct {
 // 	Department string
 // 	Role       string
 // }
+
+type GetEmployeeCitiesResponse struct {
+	Cities []string
+}
+
+type GetEmployeePositionsResponse struct {
+	Positions []string
+}
+
+type GetEmployeeProjectsResponse struct {
+	Projects []string
+}
+
+type GetEmployeeRolesResponse struct {
+	Roles []string
+}
+
+type GetEmployeeUnitsResponse struct {
+	Units []string
+}

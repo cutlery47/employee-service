@@ -217,3 +217,47 @@ func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBas
 
 	return query
 }
+
+func (r *Repository) GetHints(ctx context.Context, field string, value string) (interface{}, error) {
+	getHintsQuery := `
+	SELECT ($1)
+	FROM employees AS e
+	WHERE
+	e.$1 LIKE '$2%';
+	`
+
+	rows, err := r.db.QueryContext(ctx, getHintsQuery, field, value)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var hints []string
+	for rows.Next() {
+		var hint string
+		rows.Scan(hint)
+		hints = append(hints, hint)
+	}
+	if field == "city" {
+		var citiesResponse model.GetEmployeeCitiesResponse
+		citiesResponse.Cities = hints
+		return citiesResponse, nil
+	} else if field == "position" {
+		var positionsResponse model.GetEmployeePositionsResponse
+		positionsResponse.Positions = hints
+		return positionsResponse, nil
+	} else if field == "project" {
+		var projectsResponse model.GetEmployeeProjectsResponse
+		projectsResponse.Projects = hints
+		return projectsResponse, nil
+	} else if field == "role" {
+		var rolesResponse model.GetEmployeeRolesResponse
+		rolesResponse.Roles = hints
+		return rolesResponse, nil
+	} else if field == "unit" {
+		var unitsResponse model.GetEmployeeUnitsResponse
+		unitsResponse.Units = hints
+		return unitsResponse, nil
+	}
+	return nil, nil
+}
