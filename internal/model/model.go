@@ -1,24 +1,61 @@
 package model
 
-import (
-	"time"
-)
+// api/v1/employees (POST)
 
-type UserMeta struct {
-	UserGeneral
-	DateOfBirth time.Time
-	Cellphone   string
-	Email       string
-	Address     string
-	City        string
-	Team        string
-	Position    string
+type GetBaseEmployeesRequest struct {
+	City     string
+	Position string
+	Part     string
+	Project  string
+	Unit     string
+	FullName string
 }
 
-type UserGeneral struct {
-	Id         int
+type GetBaseEmployeesResponse []BaseEmployee
+
+type BaseEmployee struct {
+	IsGeneral  bool
+	Unit       string
+	Position   string
+	MiddleName string
+	FamilyName string
 	Name       string
-	Surname    string
-	Department string
-	Role       string
+	Part       string
 }
+
+// api/v1/employee (POST)
+
+type GetEmployeeResponse struct {
+	Id          int
+	Part        string
+	Name        string
+	FamilyName  string
+	MiddleName  string
+	Phone       string
+	City        string
+	Office      string
+	Position    string
+	DateOfBirth string
+	Teammates   []BaseEmployee
+}
+
+// ----------------------
+
+// type EmployeeMeta struct {
+// 	EmployeeGeneral
+// 	DateOfBirth time.Time
+// 	Cellphone   string
+// 	Email       string
+// 	Address     string
+// 	City        string
+// 	Team        string
+// 	Position    string
+// }
+
+// type EmployeeGeneral struct {
+// 	Id         int
+// 	Name       string
+// 	Surname    string
+// 	Department string
+// 	Role       string
+// }
