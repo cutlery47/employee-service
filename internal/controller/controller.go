@@ -33,6 +33,8 @@ func NewController(repo *repo.Repository, e *echo.Echo, errLog, infoLog *logrus.
 	{
 		v1.POST("/employees", ctl.GetBaseEmpoyees)
 		v1.POST("/employee", ctl.GetEmployee)
+		v1.POST("/hint", ctl.GetHint)
+		v1.POST("/unit", ctl.GetUnit)
 	}
 }
 
