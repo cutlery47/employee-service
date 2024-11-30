@@ -36,13 +36,13 @@ func NewController(repo *repo.Repository, e *echo.Echo, errLog, infoLog *logrus.
 	}
 }
 
-// @Summary		Полуение конкретного сотрудника
+// @Summary	Полуение конкретного сотрудника
 // @Tags		Employee
-// @Param		json		body		model.GetEmployeeRequest		true	"json body"
-// @Success	200	{object}	model.GetEmployeeResponse
-// @Failure	400	{object}	echo.HTTPError
-// @Failure	404	{object}	echo.HTTPError
-// @Failure	500	{object}	echo.HTTPError
+// @Param		json	body		model.GetEmployeeRequest	true	"json body"
+// @Success	200		{object}	model.GetEmployeeResponse
+// @Failure	400		{object}	echo.HTTPError
+// @Failure	404		{object}	echo.HTTPError
+// @Failure	500		{object}	echo.HTTPError
 // @Router		/api/v1/employee [post]
 func (ctl *Controller) GetEmployee(c echo.Context) error {
 	ctx := c.Request().Context()
@@ -65,7 +65,14 @@ func (ctl *Controller) GetEmployee(c echo.Context) error {
 	return c.JSON(200, res)
 }
 
-// api/v1/employees
+// @Summary			Полуение сотрудников по фильтрам
+// @Tags			Employee
+// @Param			json	body		model.GetBaseEmployeesRequest	true	"json body"
+// @Success	200		{object}	model.GetBaseEmployeesResponse
+// @Failure	400		{object}	echo.HTTPError
+// @Failure	404		{object}	echo.HTTPError
+// @Failure	500		{object}	echo.HTTPError
+// @Router			/api/v1/employees [post]
 func (ctl *Controller) GetBaseEmpoyees(c echo.Context) error {
 	ctx := c.Request().Context()
 
@@ -77,6 +84,10 @@ func (ctl *Controller) GetBaseEmpoyees(c echo.Context) error {
 	err := decoder.Decode(&request)
 	if err != nil {
 		ctl.h.handleError(err)
+	}
+
+	if request.Limit == 0 {
+		return echo.NewHTTPError(400, "pagination limit must be provided")
 	}
 
 	employees, err := ctl.repo.GetBaseEmployees(ctx, request)

@@ -23,6 +23,25 @@ definitions:
       unit:
         type: string
     type: object
+  github_com_cutlery47_employee-service_internal_model.GetBaseEmployeesRequest:
+    properties:
+      city:
+        type: string
+      full_name:
+        type: string
+      limit:
+        type: integer
+      offset:
+        type: integer
+      position:
+        type: string
+      project:
+        type: string
+      role:
+        type: string
+      unit:
+        type: string
+    type: object
   github_com_cutlery47_employee-service_internal_model.GetEmployeeRequest:
     properties:
       id:
@@ -90,6 +109,37 @@ paths:
           schema:
             $ref: '#/definitions/echo.HTTPError'
       summary: Полуение конкретного сотрудника
+      tags:
+      - Employee
+  /api/v1/employees:
+    post:
+      parameters:
+      - description: json body
+        in: body
+        name: json
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_cutlery47_employee-service_internal_model.GetBaseEmployeesRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/echo.HTTPError'
+      summary: Полуение сотрудников по фильтрам
       tags:
       - Employee
 swagger: "2.0"

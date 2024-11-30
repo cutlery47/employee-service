@@ -25,7 +25,7 @@ INSERT INTO units_relations (parent_id, child_id) VALUES
 (4, 3); -- Marketing Department подчиняется Sales Department
 
 -- Заполнение таблицы employees
-INSERT INTO employees (unit_id, role_name, name, family_name, middle_name, phone, city, project, office_address, position, birth_date, is_general) VALUES
+INSERT INTO employees (unit_id, name, role_name, family_name, middle_name, phone, city, project, office_address, position, birth_date, is_general) VALUES
 (1, 'John', 'role_1', 'Doe', 'Michael', '+1234567890', 'New York', 'Onboarding', '123 Main St', 'HR Specialist', '1985-03-15', FALSE),
 (2, 'Alice', 'role_2', 'Smith', 'Mary', '+1234567891', 'San Francisco', 'IT Infrastructure', '456 Elm St', 'System Administrator', '1990-07-22', FALSE),
 (2, 'Bob', 'role_3', 'Johnson', 'Andrew', '+1234567892', 'Chicago', 'Regional Sales', '789 Pine St', 'Sales Manager', '1988-11-09', FALSE),

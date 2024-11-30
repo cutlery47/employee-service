@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cutlery47/employee-service/internal/config"
 	"github.com/cutlery47/employee-service/internal/model"
@@ -142,7 +143,7 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 
 func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBaseEmployeesRequest) (model.GetBaseEmployeesResponse, error) {
 	getEmployeesQuery := `
-	SELECT e.id, is_general, role, name, family_name, middle_name, position, u.name)
+	SELECT e.id, e.is_general, e.role_name, e.name, e.family_name, e.middle_name, e.position, u.name
 	FROM employees AS e
 	JOIN units AS u
 	ON e.unit_id = u.id
@@ -151,7 +152,11 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 
 	var appliedFilters []interface{}
 
-	filteredQuery := r.applyBaseEmployeeFilters(getEmployeesQuery, request, &appliedFilters)
+	filteredQuery, err := r.applyBaseEmployeeFilters(getEmployeesQuery, request, &appliedFilters)
+	if err != nil {
+		return model.GetBaseEmployeesResponse{}, err
+	}
+
 	rows, err := r.db.QueryContext(ctx, filteredQuery, appliedFilters...)
 	if err != nil {
 		return model.GetBaseEmployeesResponse{}, err
@@ -181,30 +186,15 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 	return response, nil
 }
 
-func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBaseEmployeesRequest, applied *[]any) string {
+func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBaseEmployeesRequest, applied *[]any) (string, error) {
 	filterCount := 0
-
-	if request.Id != 0 {
-		filterCount++
-		query += fmt.Sprintf("id = $%v\n", filterCount)
-		*applied = append(*applied, request.Id)
-	}
-
-	if request.FullName != "" {
-		if filterCount > 0 {
-			query += "AND\n"
-		}
-		filterCount++
-		query += fmt.Sprintf("full_name = $%v\n", filterCount)
-		*applied = append(*applied, request.FullName)
-	}
 
 	if request.Unit != "" {
 		if filterCount > 0 {
 			query += "AND\n"
 		}
 		filterCount++
-		query += fmt.Sprintf("unit = $%v\n", filterCount)
+		query += fmt.Sprintf("u.name = $%v\n", filterCount)
 		*applied = append(*applied, request.Unit)
 	}
 
@@ -213,7 +203,7 @@ func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBas
 			query += "AND\n"
 		}
 		filterCount++
-		query += fmt.Sprintf("project = $%v\n", filterCount)
+		query += fmt.Sprintf("e.project = $%v\n", filterCount)
 		*applied = append(*applied, request.Project)
 	}
 
@@ -222,7 +212,7 @@ func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBas
 			query += "AND\n"
 		}
 		filterCount++
-		query += fmt.Sprintf("role = $%v\n", filterCount)
+		query += fmt.Sprintf("e.role_name = $%v\n", filterCount)
 		*applied = append(*applied, request.Role)
 	}
 
@@ -231,7 +221,7 @@ func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBas
 			query += "AND\n"
 		}
 		filterCount++
-		query += fmt.Sprintf("position = $%v\n", filterCount)
+		query += fmt.Sprintf("e.position = $%v\n", filterCount)
 		*applied = append(*applied, request.Position)
 	}
 
@@ -240,15 +230,73 @@ func (r *Repository) applyBaseEmployeeFilters(query string, request model.GetBas
 			query += "AND\n"
 		}
 		filterCount++
-		query += fmt.Sprintf("city = $%v\n", filterCount)
+		query += fmt.Sprintf("e.city = $%v\n", filterCount)
 		*applied = append(*applied, request.City)
+	}
+
+	if request.FullName != "" {
+		if filterCount > 0 {
+			query += "AND\n"
+		}
+		names := strings.Split(request.FullName, " ")
+
+		if len(names) == 3 {
+			name_1, name_2, name_3 := names[0], names[1], names[2]
+
+			filterCount += 3
+			query += fmt.Sprintf(
+				"e.name IN ($%v, $%v, $%v) OR e.family_name IN ($%v, $%v, $%v) OR e.middle_name IN ($%v, $%v, $%v)\n",
+				filterCount-2,
+				filterCount-1,
+				filterCount,
+				filterCount-2,
+				filterCount-1,
+				filterCount,
+				filterCount-2,
+				filterCount-1,
+				filterCount,
+			)
+			*applied = append(*applied, name_1, name_2, name_3)
+		} else if len(names) == 2 {
+			name_1, name_2 := names[0], names[1]
+
+			filterCount += 2
+			query += fmt.Sprintf(
+				"e.name IN ($%v, $%v) OR e.family_name IN ($%v, $%v) OR e.middle_name IN ($%v, $%v)\n",
+				filterCount-1,
+				filterCount,
+				filterCount-1,
+				filterCount,
+				filterCount-1,
+				filterCount,
+			)
+			*applied = append(*applied, name_1, name_2)
+		} else if len(names) == 1 {
+			name := names[0]
+
+			filterCount++
+			query += fmt.Sprintf(
+				"e.name = $%v OR e.family_name = $%v OR e.middle_name = $%v\n",
+				filterCount,
+				filterCount,
+				filterCount,
+			)
+			*applied = append(*applied, name)
+		} else {
+			return "", ErrNameLengthExceeded
+		}
+
+	}
+
+	if filterCount == 0 {
+		query = strings.TrimSuffix(query, "WHERE\n\t")
 	}
 
 	filterCount++
 	query += fmt.Sprintf("LIMIT $%v OFFSET $%v;", filterCount, filterCount+1)
 	*applied = append(*applied, request.Limit, request.Offset)
 
-	return query
+	return query, nil
 }
 
 func (r *Repository) GetHints(ctx context.Context, field string, value string) (interface{}, error) {

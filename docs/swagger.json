@@ -53,6 +53,54 @@
                     }
                 }
             }
+        },
+        "/api/v1/employees": {
+            "post": {
+                "tags": [
+                    "Employee"
+                ],
+                "summary": "Полуение сотрудников по фильтрам",
+                "parameters": [
+                    {
+                        "description": "json body",
+                        "name": "json",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.GetBaseEmployeesRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/echo.HTTPError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -81,6 +129,35 @@
                     "type": "string"
                 },
                 "position": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "unit": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_cutlery47_employee-service_internal_model.GetBaseEmployeesRequest": {
+            "type": "object",
+            "properties": {
+                "city": {
+                    "type": "string"
+                },
+                "full_name": {
+                    "type": "string"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "position": {
+                    "type": "string"
+                },
+                "project": {
                     "type": "string"
                 },
                 "role": {

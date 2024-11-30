@@ -14,11 +14,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//	@title			Employee Service
-//	@version		0.0.1
+//	@title		Employee Service
+//	@version	0.0.1
 
-// @contact.name	DEVils
-// @BasePath	/
+//	@contact.name	DEVils
+//	@BasePath		/
 func Run() error {
 	ctx := context.Background()
 

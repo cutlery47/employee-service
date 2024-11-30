@@ -7,8 +7,9 @@ import (
 )
 
 var errMap = map[error]*echo.HTTPError{
-	repository.ErrUserNotFound:    echo.ErrNotFound,
-	repository.ErrWrongDateFormat: echo.ErrBadRequest,
+	repository.ErrUserNotFound:       echo.ErrNotFound,
+	repository.ErrWrongDateFormat:    echo.ErrBadRequest,
+	repository.ErrNameLengthExceeded: echo.ErrBadRequest,
 }
 
 type errHandler struct {

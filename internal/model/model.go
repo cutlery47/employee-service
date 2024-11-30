@@ -3,7 +3,6 @@ package model
 // api/v1/employees (POST)
 
 type GetBaseEmployeesRequest struct {
-	Id       int    `json:"id,omitempty"`
 	FullName string `json:"full_name,omitempty"`
 	Unit     string `json:"unit,omitempty"`
 	Project  string `json:"project,omitempty"`
