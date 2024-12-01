@@ -13,7 +13,9 @@ type GetBaseEmployeesRequest struct {
 	Offset   int    `json:"offset"`
 }
 
-type GetBaseEmployeesResponse []BaseEmployee
+type GetBaseEmployeesResponse struct {
+	Employees []BaseEmployee `json:"employees"`
+}
 
 // TODO: string dict на верхний unit
 type BaseEmployee struct {

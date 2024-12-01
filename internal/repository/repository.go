@@ -244,10 +244,10 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 		}
 
 		parentIds = append(parentIds, parentId)
-		employees = append(employees, employee)
+		employees.Employees = append(employees.Employees, employee)
 	}
 
-	if len(employees) == 0 {
+	if len(employees.Employees) == 0 {
 		return model.GetBaseEmployeesResponse{}, ErrUserNotFound
 	}
 
@@ -258,7 +258,7 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 	u.id=$1;
 	`
 
-	for i := 0; i < len(employees); i++ {
+	for i := 0; i < len(employees.Employees); i++ {
 		var parentUnit string
 		parentMap := make(map[string]string)
 
@@ -266,15 +266,15 @@ func (r *Repository) GetBaseEmployees(ctx context.Context, request model.GetBase
 			row := r.db.QueryRowContext(ctx, getParentName, parentIds[i])
 			if err := row.Scan(&parentUnit); err != nil {
 				if errors.Is(err, sql.ErrNoRows) {
-					parentMap[employees[i].Unit] = ""
+					parentMap[employees.Employees[i].Unit] = ""
 				} else {
 					return model.GetBaseEmployeesResponse{}, err
 				}
 			}
 		}
 
-		parentMap[employees[i].Unit] = parentUnit
-		employees[i].StringDict = parentMap
+		parentMap[employees.Employees[i].Unit] = parentUnit
+		employees.Employees[i].StringDict = parentMap
 	}
 
 	return employees, nil

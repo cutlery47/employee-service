@@ -153,7 +153,7 @@ func (ctl *Controller) GetHint(c echo.Context) error {
 // @Summary			Получение данных о юните
 // @Tags			Unit
 // @Param			json		body		model.GetUnitRequest	true	"json body"
-// @Success	200		{object}	model.GetUnitResponse
+// @Success	200		{object}	model.Unit
 // @Failure	400		{object}	echo.HTTPError
 // @Failure	404		{object}	echo.HTTPError
 // @Failure	500		{object}	echo.HTTPError

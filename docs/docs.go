@@ -83,10 +83,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee"
-                            }
+                            "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.GetBaseEmployeesResponse"
                         }
                     },
                     "400": {
@@ -131,10 +128,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee"
-                            }
+                            "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.GetBaseEmployeesResponse"
                         }
                     },
                     "400": {
@@ -179,7 +173,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.GetUnitResponse"
+                            "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.Unit"
                         }
                     },
                     "400": {
@@ -237,6 +231,13 @@ const docTemplate = `{
                 },
                 "unit": {
                     "type": "string"
+                },
+                "units": {
+                    "description": "название текущего юнита -\u003e название высшестоящего юнита",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },
@@ -266,6 +267,17 @@ const docTemplate = `{
                 },
                 "unit": {
                     "type": "string"
+                }
+            }
+        },
+        "github_com_cutlery47_employee-service_internal_model.GetBaseEmployeesResponse": {
+            "type": "object",
+            "properties": {
+                "employees": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee"
+                    }
                 }
             }
         },
@@ -318,6 +330,9 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee"
                     }
+                },
+                "unit_id": {
+                    "type": "integer"
                 }
             }
         },
@@ -352,7 +367,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_cutlery47_employee-service_internal_model.GetUnitResponse": {
+        "github_com_cutlery47_employee-service_internal_model.Unit": {
             "type": "object",
             "properties": {
                 "id": {
@@ -364,31 +379,20 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
-                "parent_id": {
-                    "type": "integer"
-                },
                 "partisipants": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.BaseEmployee"
                     }
                 },
+                "unit_parent_id": {
+                    "type": "integer"
+                },
                 "units": {
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/github_com_cutlery47_employee-service_internal_model.Unit"
                     }
-                }
-            }
-        },
-        "github_com_cutlery47_employee-service_internal_model.Unit": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
                 }
             }
         }
