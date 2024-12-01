@@ -6,6 +6,7 @@ import (
 	"github.com/cutlery47/employee-service/internal/model"
 	repo "github.com/cutlery47/employee-service/internal/repository"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/sirupsen/logrus"
 	echoSwagger "github.com/swaggo/echo-swagger"
 
@@ -25,6 +26,9 @@ func NewController(repo *repo.Repository, e *echo.Echo, errLog, infoLog *logrus.
 		},
 	}
 
+	e.Use(middleware.CORS())
+	e.Use(middleware.Recover())
+
 	e.GET("/ping", func(c echo.Context) error { return c.NoContent(200) })
 	e.GET("/swagger/*", echoSwagger.WrapHandler)
 
@@ -37,14 +41,14 @@ func NewController(repo *repo.Repository, e *echo.Echo, errLog, infoLog *logrus.
 	}
 }
 
-// @Summary	Полуение конкретного сотрудника
-// @Tags		Employee
-// @Param		json	body		model.GetEmployeeRequest	true	"json body"
+// @Summary			Полуение конкретного сотрудника
+// @Tags			Employee
+// @Param			json	body		model.GetEmployeeRequest	true	"json body"
 // @Success	200		{object}	model.GetEmployeeResponse
 // @Failure	400		{object}	echo.HTTPError
 // @Failure	404		{object}	echo.HTTPError
 // @Failure	500		{object}	echo.HTTPError
-// @Router		/api/v1/employee [post]
+// @Router			/api/v1/employee [post]
 func (ctl *Controller) GetEmployee(c echo.Context) error {
 	ctx := c.Request().Context()
 

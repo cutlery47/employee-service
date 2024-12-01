@@ -19,7 +19,7 @@ INSERT INTO units_relations (parent_id, child_id) VALUES
 (9, 5),
 (6, 7),
 (8, 6),
-(3, 8)
+(3, 8);
 
 -- Заполнение таблицы employees
 INSERT INTO employees (unit_id, name, role_name, family_name, middle_name, phone, city, project, office_address, position, birth_date, is_general) VALUES

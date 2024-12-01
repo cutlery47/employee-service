@@ -79,7 +79,6 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 	`
 
 	response := model.GetEmployeeResponse{}
-	var unitId int
 
 	row := r.db.QueryRowContext(ctx, getEmployeeQuery, id)
 	if err := row.Scan(
@@ -94,7 +93,7 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 		&response.Office,
 		&response.Position,
 		&response.DateOfBirth,
-		&unitId,
+		&response.UnitId,
 	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return model.GetEmployeeResponse{}, ErrUserNotFound
@@ -117,7 +116,7 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 	var parent_id int
 	hashSet := make(map[int]bool)
 
-	rows, err := r.db.QueryContext(ctx, getTeammatesQuery, unitId)
+	rows, err := r.db.QueryContext(ctx, getTeammatesQuery, response.UnitId)
 	if err != nil {
 		return model.GetEmployeeResponse{}, err
 	}
@@ -163,7 +162,7 @@ func (r *Repository) GetEmployee(ctx context.Context, id int) (model.GetEmployee
 	`
 
 	parentId := -1
-	row = r.db.QueryRow(getParentId, unitId)
+	row = r.db.QueryRow(getParentId, response.UnitId)
 	if err := row.Scan(&parentId); err != nil {
 		if !errors.Is(err, sql.ErrNoRows) {
 			return model.GetEmployeeResponse{}, err
@@ -510,7 +509,7 @@ func (r *Repository) GetUnit(ctx context.Context, id int) (model.Unit, error) {
 	row = r.db.QueryRowContext(ctx, getParentIdQuery, id)
 	if err := row.Scan(&parentId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			parentId = -1
+			parentId = 0
 		} else {
 			return model.Unit{}, err
 		}
@@ -624,7 +623,7 @@ func (r *Repository) getLastUnit(ctx context.Context, id int) (model.Unit, error
 	row = r.db.QueryRowContext(ctx, getParentIdQuery, id)
 	if err := row.Scan(&parentId); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			parentId = -1
+			parentId = 0
 		} else {
 			return model.Unit{}, err
 		}

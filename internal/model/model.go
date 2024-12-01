@@ -37,6 +37,7 @@ type GetEmployeeRequest struct {
 
 type GetEmployeeResponse struct {
 	Id          int    `json:"id"`
+	UnitId      int    `json:"unit_id"`
 	Role        string `json:"role"`
 	Name        string `json:"name"`
 	FamilyName  string `json:"family_name"`
